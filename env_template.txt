@@ -1,0 +1,28 @@
+# Paw Burn Risk Assessment - Environment Variables Template
+# Copy this file to .env and fill in your values
+
+# WeatherAPI.com API Key (Required)
+# Sign up at https://www.weatherapi.com/ to get a free API key
+WEATHER_API_KEY=your_weatherapi_key_here
+
+# Default location for weather data (Optional)
+# Can be city name, zip code, or coordinates
+DEFAULT_LOCATION=New York
+
+# Database file path (Optional)
+DATABASE_PATH=paw_risk.db
+
+# Temperature thresholds in Fahrenheit (Optional)
+TEMP_THRESHOLD_LOW=80
+TEMP_THRESHOLD_MED=90
+TEMP_THRESHOLD_HIGH=100
+
+# UV Index thresholds (Optional)
+UV_THRESHOLD_LOW=6
+UV_THRESHOLD_MED=8
+UV_THRESHOLD_HIGH=10
+
+# Risk assessment parameters (Optional)
+RISK_THRESHOLD_SHOES=6
+ROLLING_WINDOW_HOURS=2
+SURFACE_RECOVERY_HOURS=2 

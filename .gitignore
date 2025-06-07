@@ -1,0 +1,20 @@
+# Environment variables
+.env
+
+# Generated plots directory
+plots/
+
+# Database files
+*.db
+paw_risk.db
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# macOS system files
+.DS_Store
+
+# Allow documentation images
+*.png
+!project_images/*.png 
