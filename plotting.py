@@ -10,6 +10,7 @@ import warnings
 import os
 import shutil
 from models import WeatherHour, RiskScore
+from config import RiskConfig, get_config
 
 # Suppress matplotlib UserWarnings and macOS GUI warnings
 warnings.filterwarnings('ignore', category=UserWarning, module='matplotlib')
@@ -18,15 +19,29 @@ warnings.filterwarnings('ignore', message='.*NSSavePanel.*')
 class RiskPlotter:
     """Handles plotting and visualization of risk data."""
     
-    def __init__(self, figure_size: Tuple[int, int] = (12, 8)):
+    def __init__(self, figure_size: Tuple[int, int] = (12, 8), use_24hr_time: Optional[bool] = None):
         self.figure_size = figure_size
         self.plots_dir = "plots"
         self._plots_dir_setup = False
+        
+        # Get time format preference from config if not specified
+        if use_24hr_time is None:
+            config = get_config().risk_config
+            self.use_24hr_time = getattr(config, 'use_24hr_time', False)
+        else:
+            self.use_24hr_time = use_24hr_time
         
         # Set up matplotlib style and suppress warnings
         plt.style.use('default')
         plt.rcParams['figure.figsize'] = figure_size
         plt.rcParams['font.size'] = 10
+    
+    def get_time_formatter(self):
+        """Get the appropriate time formatter based on config."""
+        if self.use_24hr_time:
+            return mdates.DateFormatter('%H:%M')
+        else:
+            return mdates.DateFormatter('%I:%M %p')
     
     def _setup_plots_directory(self):
         """Create and clear plots directory."""
@@ -116,8 +131,9 @@ class RiskPlotter:
         ax3.grid(True, alpha=0.3)
         
         # Format x-axis
+        time_formatter = self.get_time_formatter()
         for ax in [ax1, ax2, ax3]:
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+            ax.xaxis.set_major_formatter(time_formatter)
             ax.xaxis.set_major_locator(mdates.HourLocator(interval=2))
             plt.setp(ax.xaxis.get_majorticklabels(), rotation=45)
         
@@ -166,7 +182,8 @@ class RiskPlotter:
         ax.grid(True, alpha=0.3)
         
         # Format x-axis
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        time_formatter = self.get_time_formatter()
+        ax.xaxis.set_major_formatter(time_formatter)
         ax.xaxis.set_major_locator(mdates.HourLocator(interval=2))
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=45)
         
@@ -334,8 +351,9 @@ class RiskPlotter:
         ax4.set_title('Weather Conditions')
         
         # Format x-axis for all subplots
+        time_formatter = self.get_time_formatter()
         for ax in [ax1, ax4]:
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+            ax.xaxis.set_major_formatter(time_formatter)
             ax.xaxis.set_major_locator(mdates.HourLocator(interval=2))
             plt.setp(ax.xaxis.get_majorticklabels(), rotation=45)
         

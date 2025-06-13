@@ -71,6 +71,13 @@ class PawRiskApp:
             logger.error(f"Error during analysis: {e}")
             return {"error": str(e)}
     
+    def format_time(self, dt: datetime) -> str:
+        """Format time based on user's preference."""
+        if self.config.risk_config.use_24hr_time:
+            return dt.strftime("%H:%M")
+        else:
+            return dt.strftime("%I:%M %p")
+    
     def print_summary(self, analysis_result: dict):
         """Print a formatted summary of the analysis."""
         if "error" in analysis_result:
@@ -117,11 +124,11 @@ class PawRiskApp:
         
         print("\n🕐 HOURLY BREAKDOWN:")
         print("-" * 80)
-        print(f"{'Time':>6} {'Temp':>6} {'UV':>4} {'Condition':>12} {'Risk':>6} {'Shoes':>7}")
+        print(f"{'Time':>8} {'Temp':>6} {'UV':>4} {'Condition':>12} {'Risk':>6} {'Shoes':>7}")
         print("-" * 80)
         
         for weather, risk in zip(weather_hours, risk_scores):
-            time_str = weather.datetime.strftime("%H:%M")
+            time_str = self.format_time(weather.datetime)
             temp_str = f"{weather.temperature_f:.0f}°F"
             uv_str = f"{weather.uv_index:.1f}" if weather.uv_index else "N/A"
             condition_short = weather.condition[:12]
@@ -129,7 +136,7 @@ class PawRiskApp:
             shoes_str = "YES" if risk.recommend_shoes else "no"
             shoes_color = "⚠️ " if risk.recommend_shoes else "✅ "
             
-            print(f"{time_str:>6} {temp_str:>6} {uv_str:>4} {condition_short:>12} "
+            print(f"{time_str:>8} {temp_str:>6} {uv_str:>4} {condition_short:>12} "
                   f"{risk_str:>6} {shoes_color}{shoes_str:>5}")
     
     def create_plots(self, analysis_result: dict, save_plots: bool = False):
@@ -207,6 +214,7 @@ def main():
                 print(f"Default Location: {config.default_location}")
                 print(f"Database Path: {config.database_path}")
                 print(f"Risk Threshold: {config.risk_config.risk_threshold_shoes}")
+                print(f"Time Format: {'24-hour' if config.risk_config.use_24hr_time else '12-hour'}")
                 return
             except Exception as e:
                 print(f"❌ Configuration error: {e}")

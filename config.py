@@ -30,6 +30,9 @@ class RiskConfig:
     enable_graduated_recovery: bool = True
     enable_time_of_day_factor: bool = True
     
+    # Display preferences
+    use_24hr_time: bool = False  # False for 12hr time format, True for 24hr
+    
     @classmethod
     def from_env(cls) -> 'RiskConfig':
         """Create configuration from environment variables."""
@@ -48,7 +51,9 @@ class RiskConfig:
             surface_type=os.getenv('SURFACE_TYPE', 'asphalt'),
             surface_max_recovery_score=float(os.getenv('SURFACE_MAX_RECOVERY_SCORE', 2.0)),
             enable_graduated_recovery=os.getenv('ENABLE_GRADUATED_RECOVERY', 'true').lower() == 'true',
-            enable_time_of_day_factor=os.getenv('ENABLE_TIME_OF_DAY_FACTOR', 'true').lower() == 'true'
+            enable_time_of_day_factor=os.getenv('ENABLE_TIME_OF_DAY_FACTOR', 'true').lower() == 'true',
+            # Display preferences
+            use_24hr_time=os.getenv('USE_24HR_TIME', 'false').lower() == 'true'
         )
 
 @dataclass

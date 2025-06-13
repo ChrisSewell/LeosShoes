@@ -303,6 +303,13 @@ class RiskCalculator:
         
         return blocks
     
+    def format_time(self, dt: datetime) -> str:
+        """Format time based on user's preference."""
+        if hasattr(self.config, 'use_24hr_time') and self.config.use_24hr_time:
+            return dt.strftime("%H:%M")
+        else:
+            return dt.strftime("%I:%M %p")
+    
     def generate_recommendations(self, risk_scores: List[RiskScore]) -> dict:
         """Generate comprehensive recommendations based on risk scores."""
         if not risk_scores:
@@ -326,13 +333,13 @@ class RiskCalculator:
                 "high_risk_hours": high_risk_hours,
                 "max_risk_score": round(max_score, 1),
                 "average_risk_score": round(avg_score, 1),
-                "peak_risk_time": peak_score.datetime.strftime("%H:%M"),
+                "peak_risk_time": self.format_time(peak_score.datetime),
                 "continuous_risk_blocks": len(risk_blocks)
             },
             "risk_periods": [
                 {
-                    "start": start.strftime("%H:%M"),
-                    "end": end.strftime("%H:%M"),
+                    "start": self.format_time(start),
+                    "end": self.format_time(end),
                     "duration_hours": round((end - start).total_seconds() / 3600, 1)
                 }
                 for start, end in risk_blocks
