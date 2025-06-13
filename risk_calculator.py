@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Tuple
 from models import WeatherHour, RiskScore
 from config import RiskConfig, get_config
+from constants import SURFACE_COOLING_COEFFICIENTS, NIGHT_START_HOUR, NIGHT_END_HOUR
+from constants import NIGHT_COOLING_MULTIPLIER, DAY_COOLING_MULTIPLIER
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +15,21 @@ class RiskCalculator:
     
     def __init__(self, config: Optional[RiskConfig] = None):
         self.config = config or get_config().risk_config
+        
+        # Validate surface type is supported
+        if self.config.surface_type.lower() not in SURFACE_COOLING_COEFFICIENTS:
+            logger.warning(f"Surface type '{self.config.surface_type}' not recognized, using 'mixed' instead")
+            self.config.surface_type = "mixed"
+            
+        # Log enhanced recovery settings
+        if self.config.enable_graduated_recovery:
+            logger.info(f"Using graduated recovery scoring with max score of {self.config.surface_max_recovery_score}")
+        
+        if self.config.enable_time_of_day_factor:
+            logger.info(f"Time-of-day cooling factor enabled (night: {NIGHT_COOLING_MULTIPLIER}x, day: {DAY_COOLING_MULTIPLIER}x)")
+            
+        logger.info(f"Surface recovery config: threshold={self.config.surface_recovery_temp_threshold}°F, " 
+                  f"hours={self.config.surface_recovery_hours}, surface={self.config.surface_type}")
     
     def calculate_temperature_score(self, temperature_f: float) -> float:
         """Calculate risk score based on air temperature."""
@@ -78,25 +95,78 @@ class RiskCalculator:
     
     def calculate_surface_recovery_score(self, weather_hours: List[WeatherHour], 
                                        current_index: int) -> float:
-        """Calculate surface recovery score (time since last peak temperature)."""
+        """Calculate surface recovery score with enhanced logic."""
         if current_index < 2:
             return 0.0
         
-        # Look back to find the last time temperature was ≥90°F
+        # Look back to find the last time temperature was above the threshold
         hours_since_peak = 0
+        sun_exposure_hours = 0
+        peak_temp = 0
+        
+        current_hour = weather_hours[current_index].datetime
+        
         for i in range(current_index - 1, -1, -1):
             hours_since_peak += 1
-            if weather_hours[i].temperature_f >= 90.0:
+            
+            # Check if temperature was above recovery threshold
+            if weather_hours[i].temperature_f >= self.config.surface_recovery_temp_threshold:
+                peak_temp = weather_hours[i].temperature_f
                 break
+            
+            # Count sun exposure during recovery period
+            condition = weather_hours[i].condition.lower()
+            if 'sunny' in condition or 'clear' in condition:
+                sun_exposure_hours += 1
         else:
             # No peak found in available data
             hours_since_peak = current_index + 1
-        
-        # Give recovery credit if it's been >2 hours since last 90°F reading
-        if hours_since_peak > self.config.surface_recovery_hours:
-            return -1.0
-        else:
+            
+        # No recovery needed if no peak was found
+        if peak_temp == 0:
             return 0.0
+        
+        # Apply surface type coefficient
+        cooling_coefficient = SURFACE_COOLING_COEFFICIENTS.get(
+            self.config.surface_type.lower(), 1.0)
+        
+        # Apply time-of-day factor if enabled
+        if self.config.enable_time_of_day_factor:
+            hour_of_day = current_hour.hour
+            time_multiplier = (NIGHT_COOLING_MULTIPLIER 
+                              if hour_of_day >= NIGHT_START_HOUR or hour_of_day < NIGHT_END_HOUR 
+                              else DAY_COOLING_MULTIPLIER)
+        else:
+            time_multiplier = 1.0
+            
+        # Calculate sun exposure percentage during recovery
+        sun_percentage = sun_exposure_hours / hours_since_peak if hours_since_peak > 0 else 0
+        
+        # Sun slows cooling (reduce coefficient by up to 30%)
+        sun_factor = 1.0 - (sun_percentage * 0.3)
+        
+        # Final adjusted hours since peak temperature
+        adjusted_hours = hours_since_peak * cooling_coefficient * time_multiplier * sun_factor
+        
+        # Calculate recovery score
+        if adjusted_hours <= self.config.surface_recovery_hours:
+            # No recovery credit yet
+            return 0.0
+        elif self.config.enable_graduated_recovery:
+            # Graduated recovery (more hours = more recovery credit)
+            # Normalize to range 0.0 to max_recovery_score
+            hours_over = adjusted_hours - self.config.surface_recovery_hours
+            max_additional_hours = self.config.surface_recovery_hours  # Full credit after double the recovery time
+            factor = min(1.0, hours_over / max_additional_hours)
+            recovery_score = -factor * self.config.surface_max_recovery_score
+            
+            logger.debug(f"Graduated recovery: {hours_since_peak} hrs since {peak_temp}°F peak, "
+                       f"adjusted to {adjusted_hours:.1f} hrs, score: {recovery_score}")
+            
+            return recovery_score
+        else:
+            # Original binary approach
+            return -1.0
     
     def interpolate_missing_uv(self, weather_hours: List[WeatherHour]) -> List[WeatherHour]:
         """Interpolate missing UV values using nearby hours."""

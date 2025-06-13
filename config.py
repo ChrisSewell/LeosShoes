@@ -23,6 +23,13 @@ class RiskConfig:
     rolling_window_hours: int = 2
     surface_recovery_hours: int = 2
     
+    # Surface recovery enhancement parameters
+    surface_recovery_temp_threshold: float = 90.0
+    surface_type: str = "asphalt"  # Options: asphalt, concrete, mixed, grass
+    surface_max_recovery_score: float = 2.0
+    enable_graduated_recovery: bool = True
+    enable_time_of_day_factor: bool = True
+    
     @classmethod
     def from_env(cls) -> 'RiskConfig':
         """Create configuration from environment variables."""
@@ -35,7 +42,13 @@ class RiskConfig:
             uv_threshold_high=float(os.getenv('UV_THRESHOLD_HIGH', 10)),
             risk_threshold_shoes=float(os.getenv('RISK_THRESHOLD_SHOES', 6)),
             rolling_window_hours=int(os.getenv('ROLLING_WINDOW_HOURS', 2)),
-            surface_recovery_hours=int(os.getenv('SURFACE_RECOVERY_HOURS', 2))
+            surface_recovery_hours=int(os.getenv('SURFACE_RECOVERY_HOURS', 2)),
+            # Surface recovery enhancement parameters
+            surface_recovery_temp_threshold=float(os.getenv('SURFACE_RECOVERY_TEMP_THRESHOLD', 90)),
+            surface_type=os.getenv('SURFACE_TYPE', 'asphalt'),
+            surface_max_recovery_score=float(os.getenv('SURFACE_MAX_RECOVERY_SCORE', 2.0)),
+            enable_graduated_recovery=os.getenv('ENABLE_GRADUATED_RECOVERY', 'true').lower() == 'true',
+            enable_time_of_day_factor=os.getenv('ENABLE_TIME_OF_DAY_FACTOR', 'true').lower() == 'true'
         )
 
 @dataclass

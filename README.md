@@ -148,7 +148,34 @@ UV_THRESHOLD_HIGH=10
 RISK_THRESHOLD_SHOES=6
 ROLLING_WINDOW_HOURS=2
 SURFACE_RECOVERY_HOURS=2
+
+# Surface recovery enhancements (Optional)
+SURFACE_RECOVERY_TEMP_THRESHOLD=90   # Temperature threshold to start recovery period (°F)
+SURFACE_TYPE=asphalt                 # Options: asphalt, concrete, mixed, grass
+SURFACE_MAX_RECOVERY_SCORE=2.0       # Maximum recovery score reduction with graduated recovery
+ENABLE_GRADUATED_RECOVERY=true       # Enable graduated recovery (more cooling time = more benefit)
+ENABLE_TIME_OF_DAY_FACTOR=true       # Apply day/night cooling adjustments
 ```
+
+### Surface Recovery Feature
+
+The application includes an enhanced surface recovery model that accounts for cooling of surfaces after peak temperatures:
+
+- **Basic Recovery**: Surfaces begin to cool after being exposed to high temperatures (above `SURFACE_RECOVERY_TEMP_THRESHOLD`). After `SURFACE_RECOVERY_HOURS`, a recovery credit reduces the risk score.
+
+- **Graduated Recovery**: When enabled, provides a progressively stronger recovery benefit as more cooling time passes, up to `SURFACE_MAX_RECOVERY_SCORE`.
+
+- **Surface Type**: Different surfaces cool at different rates:
+  - Asphalt: Slowest cooling (coefficient 0.7)
+  - Concrete: Moderate cooling (coefficient 0.85)
+  - Mixed: Standard cooling (coefficient 1.0)
+  - Grass: Fastest cooling (coefficient 1.5)
+
+- **Time-of-Day**: When enabled, night hours (7pm-6am) provide 30% faster cooling than daylight hours.
+
+- **Sun Exposure**: The algorithm considers sun exposure during the recovery period, which can slow cooling by up to 30%.
+
+These factors combine to provide a more accurate assessment of surface temperatures throughout the day and the resulting paw burn risk.
 
 ## Output Examples
 
